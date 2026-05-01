@@ -24,8 +24,10 @@ public class SetupDB {
             // 2️⃣ Create scores table
             String createScoresTable = 
                 "CREATE TABLE IF NOT EXISTS scores (" +
+                "id INT AUTO_INCREMENT PRIMARY KEY, " +
                 "user VARCHAR(100), " +
-                "marks INT" +
+                "marks INT, " +
+                "attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
                 ")";
 
             stmt.executeUpdate(createScoresTable);

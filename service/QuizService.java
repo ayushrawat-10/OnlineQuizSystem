@@ -20,14 +20,16 @@ public class QuizService {
 
     /**
      * Runs the interactive quiz in the console.
-     * Fetches all questions, prompts for answers, and prints the final score.
+     * Fetches all questions, prompts for answers, and returns the final score.
+     *
+     * @return final score achieved by the user
      */
-    public void startQuiz() {
+    public int startQuiz() {
         List<Question> questions = questionDAO.getAllQuestions();
 
         if (questions.isEmpty()) {
             System.out.println("No questions found in the database. Please run SetupDB first.");
-            return;
+            return 0;
         }
 
         Scanner scanner = new Scanner(System.in);
@@ -57,6 +59,8 @@ public class QuizService {
         System.out.println("Quiz Over! Your Score: " + score + "/" + questions.size());
         System.out.println("=================================\n");
 
-        scanner.close();
+        // Note: Do NOT close scanner here — it closes System.in globally.
+        // The caller (Main) should close it after saving the score.
+        return score;
     }
 }
