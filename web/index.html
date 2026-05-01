@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Online Quiz System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d0f1a;
+      --surface:   rgba(255,255,255,0.05);
+      --glass:     rgba(255,255,255,0.08);
+      --border:    rgba(255,255,255,0.12);
+      --accent:    #6c63ff;
+      --accent2:   #a78bfa;
+      --green:     #22d3a5;
+      --red:       #f87171;
+      --text:      #f1f5f9;
+      --muted:     #94a3b8;
+      --radius:    18px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+    }
+
+    /* animated background orbs */
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(100px);
+      opacity: 0.18;
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::before {
+      width: 500px; height: 500px;
+      background: var(--accent);
+      top: -150px; left: -150px;
+      animation: orb1 12s ease-in-out infinite alternate;
+    }
+    body::after {
+      width: 400px; height: 400px;
+      background: #ec4899;
+      bottom: -100px; right: -100px;
+      animation: orb2 10s ease-in-out infinite alternate;
+    }
+    @keyframes orb1 { to { transform: translate(80px, 80px); } }
+    @keyframes orb2 { to { transform: translate(-60px, -60px); } }
+
+    /* ── SCREENS ── */
+    .screen {
+      display: none;
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 560px;
+      padding: 16px;
+      animation: fadeUp 0.4s ease both;
+    }
+    .screen.active { display: block; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 40px 36px;
+    }
+
+    /* ── LOGO / HEADER ── */
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    .logo-icon {
+      width: 46px; height: 46px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+    }
+    .logo-text { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+    .logo-text span { color: var(--accent2); }
+
+    h1 { font-size: 26px; font-weight: 800; line-height: 1.2; margin-bottom: 8px; }
+    h2 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 28px; line-height: 1.5; }
+
+    /* ── INPUT ── */
+    .input-group { margin-bottom: 20px; }
+    label { display: block; font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 8px; }
+    input[type="text"] {
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 15px;
+      color: var(--text);
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input[type="text"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(108,99,255,0.2);
+    }
+    input[type="text"]::placeholder { color: #4b5563; }
+
+    /* ── BUTTON ── */
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      box-shadow: 0 4px 24px rgba(108,99,255,0.35);
+    }
+    .btn-primary:hover  { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(108,99,255,0.45); }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      margin-top: 10px;
+    }
+    .btn-outline:hover { background: rgba(255,255,255,0.06); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+    /* ── PROGRESS BAR ── */
+    .progress-wrap {
+      background: rgba(255,255,255,0.08);
+      border-radius: 99px;
+      height: 6px;
+      margin-bottom: 28px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width 0.5s ease;
+    }
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    /* ── QUESTION ── */
+    .question-num {
+      display: inline-block;
+      background: rgba(108,99,255,0.15);
+      color: var(--accent2);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 99px;
+      margin-bottom: 14px;
+    }
+    .question-text {
+      font-size: 19px;
+      font-weight: 700;
+      line-height: 1.4;
+      margin-bottom: 24px;
+    }
+
+    /* ── FEEDBACK CHIP ── */
+    .feedback {
+      display: none;
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 16px;
+    }
+    .feedback.correct { display: block; background: rgba(34,211,165,0.12); color: var(--green); border: 1px solid rgba(34,211,165,0.25); }
+    .feedback.wrong   { display: block; background: rgba(248,113,113,0.12); color: var(--red);   border: 1px solid rgba(248,113,113,0.25); }
+
+    /* ── SCORE SCREEN ── */
+    .score-ring-wrap {
+      display: flex;
+      justify-content: center;
+      margin: 28px 0 24px;
+    }
+    .score-ring {
+      position: relative;
+      width: 150px; height: 150px;
+    }
+    .score-ring svg { transform: rotate(-90deg); }
+    .score-ring circle {
+      fill: none;
+      stroke-width: 10;
+      stroke-linecap: round;
+    }
+    .ring-bg   { stroke: rgba(255,255,255,0.08); }
+    .ring-fill {
+      stroke: url(#grad);
+      stroke-dasharray: 408;
+      stroke-dashoffset: 408;
+      transition: stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1);
+    }
+    .score-label {
+      position: absolute;
+      inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .score-num  { font-size: 36px; font-weight: 800; line-height: 1; }
+    .score-denom{ font-size: 14px; color: var(--muted); margin-top: 2px; }
+
+    .score-msg {
+      text-align: center;
+      margin-bottom: 6px;
+    }
+    .score-msg h2 { font-size: 22px; }
+    .score-msg p  { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+    /* ── LEADERBOARD ── */
+    .lb-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin: 28px 0 12px;
+    }
+    .lb-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .lb-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      animation: fadeUp 0.3s ease both;
+    }
+    .lb-rank {
+      min-width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.06);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: var(--muted);
+    }
+    .lb-rank.gold   { background: rgba(251,191,36,0.15); color: #fbbf24; }
+    .lb-rank.silver { background: rgba(148,163,184,0.15); color: #94a3b8; }
+    .lb-rank.bronze { background: rgba(180,120,60,0.15); color: #b4783c; }
+    .lb-name { flex: 1; font-weight: 600; font-size: 14px; }
+    .lb-score {
+      font-size: 14px; font-weight: 700;
+      color: var(--accent2);
+    }
+    .lb-time { font-size: 11px; color: var(--muted); }
+
+    /* ── LOADING SPINNER ── */
+    .spinner {
+      display: inline-block;
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle; margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── ERROR ── */
+    .error-box {
+      background: rgba(248,113,113,0.1);
+      border: 1px solid rgba(248,113,113,0.25);
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: var(--red);
+      margin-bottom: 16px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════ SCREEN 1 : WELCOME ══════════════ -->
+<div id="screen-welcome" class="screen active">
+  <div class="card">
+    <div class="logo">
+      <div class="logo-icon">🧠</div>
+      <div class="logo-text">Quiz<span>System</span></div>
+    </div>
+
+    <h1>Ready to test<br>your knowledge?</h1>
+    <p class="subtitle">Answer questions, earn points, and see where you rank on the leaderboard.</p>
+
+    <div id="welcome-error" class="error-box"></div>
+
+    <div class="input-group">
+      <label for="player-name">Your Name</label>
+      <input id="player-name" type="text" placeholder="e.g. Ayush" autocomplete="off" />
+    </div>
+
+    <button id="start-btn" class="btn btn-primary" onclick="startQuiz()">Start Quiz →</button>
+    <button class="btn btn-outline" onclick="viewLeaderboard()">🏅 Check Leaderboard</button>
+  </div>
+</div>
+
+<!-- ══════════════ SCREEN 1b : LEADERBOARD ONLY ══════════════ -->
+<div id="screen-leaderboard" class="screen">
+  <div class="card">
+    <div class="logo">
+      <div class="logo-icon">🏅</div>
+      <div class="logo-text">Quiz<span>System</span></div>
+    </div>
+
+    <h2>Leaderboard</h2>
+    <p class="subtitle">Top scores from all past attempts.</p>
+
+    <ul id="lb-list-home" class="lb-list"></ul>
+
+    <button class="btn btn-primary" style="margin-top:24px" onclick="showScreen('screen-welcome')">← Back</button>
+  </div>
+</div>
+
+<!-- ══════════════ SCREEN 2 : QUIZ ══════════════ -->
+<div id="screen-quiz" class="screen">
+  <div class="card">
+    <div class="logo">
+      <div class="logo-icon">🧠</div>
+      <div class="logo-text">Quiz<span>System</span></div>
+    </div>
+
+    <div class="progress-label">
+      <span id="q-counter">Question 1 of 10</span>
+      <span id="q-score-live">Score: 0</span>
+    </div>
+    <div class="progress-wrap">
+      <div id="progress-bar" class="progress-bar" style="width:0%"></div>
+    </div>
+
+    <div class="question-num" id="q-num-badge">Q1</div>
+    <div class="question-text" id="q-text">Loading…</div>
+
+    <div id="q-feedback" class="feedback"></div>
+
+    <div class="input-group">
+      <label for="answer-input">Your Answer</label>
+      <input id="answer-input" type="text" placeholder="Type your answer here…" autocomplete="off" />
+    </div>
+
+    <button id="submit-btn" class="btn btn-primary" onclick="submitAnswer()">Submit Answer</button>
+  </div>
+</div>
+
+<!-- ══════════════ SCREEN 3 : RESULT ══════════════ -->
+<div id="screen-result" class="screen">
+  <div class="card">
+    <div class="logo">
+      <div class="logo-icon">🏆</div>
+      <div class="logo-text">Quiz<span>System</span></div>
+    </div>
+
+    <div class="score-ring-wrap">
+      <div class="score-ring">
+        <svg width="150" height="150" viewBox="0 0 150 150">
+          <defs>
+            <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%"   stop-color="#6c63ff"/>
+              <stop offset="100%" stop-color="#a78bfa"/>
+            </linearGradient>
+          </defs>
+          <circle class="ring-bg"   cx="75" cy="75" r="65"/>
+          <circle class="ring-fill" id="ring-fill" cx="75" cy="75" r="65"/>
+        </svg>
+        <div class="score-label">
+          <div class="score-num"  id="result-score">0</div>
+          <div class="score-denom" id="result-total">/10</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="score-msg">
+      <h2 id="result-title">Well done!</h2>
+      <p  id="result-sub">Your score has been saved.</p>
+    </div>
+
+    <p class="lb-title">🏅 Leaderboard</p>
+    <ul id="lb-list" class="lb-list"></ul>
+
+    <button class="btn btn-primary" style="margin-top:24px" onclick="resetQuiz()">Play Again →</button>
+  </div>
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────
+  const API = 'http://localhost:8080';
+  let questions   = [];
+  let currentIdx  = 0;
+  let score       = 0;
+  let playerName  = '';
+  let answered    = false;
+
+  // ── Screens ────────────────────────────────────────────
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    // Re-trigger animation
+    const el = document.getElementById(id);
+    el.style.animation = 'none';
+    el.offsetHeight; // reflow
+    el.style.animation = '';
+    el.classList.add('active');
+  }
+
+  // ── Welcome → Start ────────────────────────────────────
+  async function startQuiz() {
+    const nameInput = document.getElementById('player-name');
+    playerName = nameInput.value.trim();
+
+    const errBox = document.getElementById('welcome-error');
+    errBox.style.display = 'none';
+
+    if (!playerName) {
+      errBox.textContent = 'Please enter your name to continue.';
+      errBox.style.display = 'block';
+      nameInput.focus();
+      return;
+    }
+
+    const btn = document.getElementById('start-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Loading questions…';
+
+    try {
+      const res = await fetch(`${API}/api/questions`);
+      if (!res.ok) throw new Error('Server error');
+      questions = await res.json();
+      if (questions.length === 0) throw new Error('No questions found. Run SetupDB first.');
+    } catch (err) {
+      errBox.textContent = '⚠ ' + err.message;
+      errBox.style.display = 'block';
+      btn.disabled = false;
+      btn.innerHTML = 'Start Quiz →';
+      return;
+    }
+
+    currentIdx = 0;
+    score = 0;
+    showScreen('screen-quiz');
+    renderQuestion();
+  }
+
+  // ── Render current question ─────────────────────────────
+  function renderQuestion() {
+    const q = questions[currentIdx];
+    const total = questions.length;
+    const pct = (currentIdx / total) * 100;
+
+    document.getElementById('q-counter').textContent    = `Question ${currentIdx + 1} of ${total}`;
+    document.getElementById('q-score-live').textContent = `Score: ${score}`;
+    document.getElementById('progress-bar').style.width = `${pct}%`;
+    document.getElementById('q-num-badge').textContent  = `Q${currentIdx + 1}`;
+    document.getElementById('q-text').textContent       = q.question;
+
+    const feedback = document.getElementById('q-feedback');
+    feedback.className = 'feedback';
+    feedback.textContent = '';
+
+    const input = document.getElementById('answer-input');
+    input.value = '';
+    input.disabled = false;
+    input.focus();
+
+    const btn = document.getElementById('submit-btn');
+    btn.textContent = 'Submit Answer';
+    btn.disabled = false;
+    answered = false;
+  }
+
+  // ── Submit answer ──────────────────────────────────────
+  function submitAnswer() {
+    if (answered) {
+      // Move to next
+      currentIdx++;
+      if (currentIdx < questions.length) {
+        renderQuestion();
+      } else {
+        finishQuiz();
+      }
+      return;
+    }
+
+    const input  = document.getElementById('answer-input');
+    const userAns = input.value.trim();
+    if (!userAns) { input.focus(); return; }
+
+    const correct = questions[currentIdx].answer.trim().toLowerCase();
+    const isRight = userAns.toLowerCase() === correct;
+
+    if (isRight) score++;
+
+    const feedback = document.getElementById('q-feedback');
+    feedback.className = 'feedback ' + (isRight ? 'correct' : 'wrong');
+    feedback.textContent = isRight
+      ? '✓ Correct!'
+      : `✗ Wrong! Correct answer: ${questions[currentIdx].answer}`;
+
+    input.disabled = true;
+    answered = true;
+
+    const btn = document.getElementById('submit-btn');
+    const isLast = currentIdx === questions.length - 1;
+    btn.textContent = isLast ? 'Finish Quiz →' : 'Next Question →';
+
+    // Update progress to include current answered question
+    const pct = ((currentIdx + 1) / questions.length) * 100;
+    document.getElementById('progress-bar').style.width = `${pct}%`;
+    document.getElementById('q-score-live').textContent = `Score: ${score}`;
+  }
+
+  // ── Finish quiz ────────────────────────────────────────
+  async function finishQuiz() {
+    // Save score
+    try {
+      await fetch(`${API}/api/score`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: playerName, score })
+      });
+    } catch (e) {
+      console.warn('Could not save score:', e);
+    }
+
+    // Show result screen
+    const total = questions.length;
+    document.getElementById('result-score').textContent = score;
+    document.getElementById('result-total').textContent = `/${total}`;
+
+    const pct = score / total;
+    let title = '', sub = '';
+    if      (pct === 1)    { title = '🎉 Perfect Score!';    sub = 'You got everything right!'; }
+    else if (pct >= 0.7)   { title = '👏 Great Job!';        sub = 'Well done, ' + playerName + '!'; }
+    else if (pct >= 0.4)   { title = '👍 Good Effort!';      sub = 'Keep practicing, ' + playerName + '!'; }
+    else                    { title = '💪 Keep Going!';       sub = 'You\'ll do better next time!'; }
+
+    document.getElementById('result-title').textContent = title;
+    document.getElementById('result-sub').textContent   = sub + ' Your score has been saved.';
+
+    showScreen('screen-result');
+
+    // Animate ring
+    const circumference = 2 * Math.PI * 65; // ~408
+    const offset = circumference * (1 - pct);
+    setTimeout(() => {
+      document.getElementById('ring-fill').style.strokeDashoffset = offset;
+    }, 200);
+
+    // Load leaderboard
+    loadLeaderboard();
+  }
+
+  // ── Load leaderboard ───────────────────────────────────
+  async function loadLeaderboard() {
+    const list = document.getElementById('lb-list');
+    list.innerHTML = '<li style="color:var(--muted);font-size:13px;padding:8px 4px">Loading…</li>';
+
+    try {
+      const res    = await fetch(`${API}/api/scores`);
+      const scores = await res.json();
+
+      if (scores.length === 0) {
+        list.innerHTML = '<li style="color:var(--muted);font-size:13px;padding:8px 4px">No scores yet.</li>';
+        return;
+      }
+
+      list.innerHTML = '';
+      const rankClasses = ['gold', 'silver', 'bronze'];
+
+      scores.slice(0, 10).forEach((s, i) => {
+        const li = document.createElement('li');
+        li.className = 'lb-item';
+        li.style.animationDelay = (i * 0.06) + 's';
+
+        const rankClass = rankClasses[i] || '';
+        const date = s.attemptedAt ? s.attemptedAt.split(' ')[0] : '';
+
+        li.innerHTML = `
+          <div class="lb-rank ${rankClass}">${i + 1}</div>
+          <div class="lb-name">${escapeHtml(s.name)}</div>
+          <div class="lb-time">${date}</div>
+          <div class="lb-score">${s.score} pts</div>
+        `;
+        list.appendChild(li);
+      });
+    } catch (e) {
+      list.innerHTML = '<li style="color:var(--red);font-size:13px;padding:8px 4px">Could not load leaderboard.</li>';
+    }
+  }
+
+  // ── View leaderboard from welcome screen ───────────────
+  async function viewLeaderboard() {
+    showScreen('screen-leaderboard');
+    const list = document.getElementById('lb-list-home');
+    list.innerHTML = '<li style="color:var(--muted);font-size:13px;padding:8px 4px">Loading…</li>';
+
+    try {
+      const res    = await fetch(`${API}/api/scores`);
+      const scores = await res.json();
+
+      if (scores.length === 0) {
+        list.innerHTML = '<li style="color:var(--muted);font-size:13px;padding:8px 4px">No scores recorded yet. Play a quiz first!</li>';
+        return;
+      }
+
+      list.innerHTML = '';
+      const rankClasses = ['gold', 'silver', 'bronze'];
+      scores.slice(0, 10).forEach((s, i) => {
+        const li = document.createElement('li');
+        li.className = 'lb-item';
+        li.style.animationDelay = (i * 0.06) + 's';
+        const rankClass = rankClasses[i] || '';
+        const date = s.attemptedAt ? s.attemptedAt.split(' ')[0] : '';
+        li.innerHTML = `
+          <div class="lb-rank ${rankClass}">${i + 1}</div>
+          <div class="lb-name">${escapeHtml(s.name)}</div>
+          <div class="lb-time">${date}</div>
+          <div class="lb-score">${s.score} pts</div>
+        `;
+        list.appendChild(li);
+      });
+    } catch (e) {
+      list.innerHTML = '<li style="color:var(--red);font-size:13px;padding:8px 4px">Could not load leaderboard. Is the server running?</li>';
+    }
+  }
+
+  // ── Reset ──────────────────────────────────────────────
+  function resetQuiz() {
+    document.getElementById('player-name').value = '';
+    document.getElementById('ring-fill').style.strokeDashoffset = 408;
+    showScreen('screen-welcome');
+    document.getElementById('player-name').focus();
+  }
+
+  // ── Helpers ────────────────────────────────────────────
+  function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // Allow Enter key to submit
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const active = document.querySelector('.screen.active');
+      if (active.id === 'screen-welcome') startQuiz();
+      if (active.id === 'screen-quiz')    submitAnswer();
+    }
+  });
+</script>
+</body>
+</html>

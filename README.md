@@ -35,6 +35,14 @@ OnlineQuizSystem/
 
 Meanwhile, the compiled output files will be generated in the `bin` folder by default.
 
+> **Commands** 
+
+>javac -cp ".;lib/mysql-connector-j-9.7.0.jar" db/DBconn.java db/SetupDB.java model/Question.java model/Score.java dao/QuestionDAO.java dao/ScoreDAO.java service/QuizService.java server/QuizServer.java
+
+
+```
+java -cp ".;lib/mysql-connector-j-9.7.0.jar" server/QuizServer
+```
 
 > If you want to customize the folder structure, open `.vscode/settings.json` and update the related settings there.
 
